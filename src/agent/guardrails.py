@@ -33,6 +33,7 @@ def complete_json_with_budget(
         usage.exceeded = True
         usage.exceeded_reason = "estimated_token_limit"
         raise BudgetExceededError("estimated token budget exhausted")
+    usage.model_calls += 1
     usage.estimated_tokens += estimated
     payload = model.complete_json(system, user)
     usage.estimated_tokens += estimate_tokens(str(payload))

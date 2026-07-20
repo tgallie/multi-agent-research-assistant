@@ -87,6 +87,7 @@ class BudgetUsage(StrictModel):
 
     iterations: int = 0
     tool_calls: int = 0
+    model_calls: int = 0
     estimated_tokens: int = 0
     output_retries: int = 0
     exceeded: bool = False
@@ -129,3 +130,4 @@ class RunResult(StrictModel):
     trace: list[TraceEvent]
     usage: BudgetUsage
     duration_ms: int = Field(ge=0)
+    estimated_cost_usd: float = Field(default=0.0, ge=0.0)

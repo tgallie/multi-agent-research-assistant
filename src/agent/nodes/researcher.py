@@ -63,6 +63,7 @@ class ResearcherNode:
                         "tool": task.tool,
                         "status": result.status,
                         "source_count": len(result.sources),
+                        "latency_ms": result.latency_ms,
                     },
                 )
             ],

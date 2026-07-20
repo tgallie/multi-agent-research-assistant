@@ -47,11 +47,13 @@ class ResearchGraph:
         executor: ToolExecutor,
         telemetry: JsonlTelemetry,
         limits: BudgetLimits | None = None,
+        cost_per_million_tokens: float = 0.0,
     ) -> None:
         """Build the named graph once for repeated isolated runs."""
 
         self._telemetry = telemetry
         self._limits = limits or BudgetLimits()
+        self._cost_per_million_tokens = cost_per_million_tokens
         builder = StateGraph(AgentState)
         builder.add_node("planner", PlannerNode(model))
         builder.add_node("researcher", ResearcherNode(executor))
@@ -104,6 +106,9 @@ class ResearchGraph:
             trace=final["trace"],
             usage=final["usage"],
             duration_ms=int((time.perf_counter() - started) * 1_000),
+            estimated_cost_usd=(
+                final["usage"].estimated_tokens * self._cost_per_million_tokens / 1_000_000
+            ),
         )
         self._telemetry.emit(result)
         return result

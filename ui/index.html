@@ -81,6 +81,8 @@
           <span>Confidence <strong id="confidence"></strong></span>
           <span>Duration <strong id="duration"></strong></span>
           <span>Tool calls <strong id="tool-calls"></strong></span>
+          <span>Model calls <strong id="model-calls"></strong></span>
+          <span>Estimated cost <strong id="cost"></strong></span>
           <span id="budget"></span>
         </div>
         <h2>Answer</h2>
@@ -118,6 +120,8 @@
           document.querySelector("#confidence").textContent = `${Math.round(data.output.confidence * 100)}%`;
           document.querySelector("#duration").textContent = `${data.duration_ms} ms`;
           document.querySelector("#tool-calls").textContent = data.usage.tool_calls;
+          document.querySelector("#model-calls").textContent = data.usage.model_calls;
+          document.querySelector("#cost").textContent = `$${data.estimated_cost_usd.toFixed(5)}`;
           document.querySelector("#budget").innerHTML = data.output.budget_exceeded
             ? '<span class="warning">Budget exceeded</span>' : "Within budget";
           document.querySelector("#answer").textContent = data.output.answer;
@@ -139,4 +143,3 @@
     </script>
   </body>
 </html>
-

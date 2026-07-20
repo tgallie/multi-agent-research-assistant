@@ -68,4 +68,5 @@ def build_graph(settings: Settings | None = None) -> ResearchGraph:
         executor=ToolExecutor([search, PythonSandboxTool(), ScratchpadTool()]),
         telemetry=JsonlTelemetry(active.agent_log_path),
         limits=active.budget_limits(),
+        cost_per_million_tokens=active.model_cost_per_million_tokens,
     )

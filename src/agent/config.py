@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-4.1-mini"
     agent_log_path: Path = Path("var/runs.jsonl")
     request_timeout_seconds: float = Field(default=15.0, ge=1.0, le=60.0)
+    model_cost_per_million_tokens: float = Field(default=0.0, ge=0.0)
 
     def budget_limits(self) -> BudgetLimits:
         """Return the default production-safe run limits."""
