@@ -4,18 +4,28 @@ from __future__ import annotations
 
 import json
 from collections import Counter
+from enum import StrEnum
 from pathlib import Path
 
 import typer
 from pydantic import BaseModel, Field
 
+from agent.config import Settings
+from agent.factory import build_graph
 from agent.graph import ResearchGraph
-from agent.model import AgentModel, HeuristicModel
+from agent.model import AgentModel, HeuristicModel, OpenAICompatibleModel
 from agent.schemas import RunResult, Source, ToolResult, ToolStatus
 from agent.telemetry import JsonlTelemetry
 from agent.tools import ToolExecutor
 
 app = typer.Typer(no_args_is_help=True)
+
+
+class EvalMode(StrEnum):
+    """Supported evaluation execution modes."""
+
+    OFFLINE = "offline"
+    LIVE = "live"
 
 
 class EvalCase(BaseModel):
@@ -202,21 +212,39 @@ Run live evaluation with configured provider keys before using these numbers for
 def run(
     dataset: Path = Path("eval/questions.jsonl"),
     output: Path = Path("eval/results.md"),
+    mode: EvalMode = EvalMode.OFFLINE,
 ) -> None:
-    """Run the deterministic offline baseline and write its Markdown artifact."""
+    """Run an offline fixture baseline or configured live-provider evaluation."""
 
     scores: list[CaseScore] = []
-    for case in load_cases(dataset):
-        graph = ResearchGraph(
-            model=HeuristicModel(),
-            executor=ToolExecutor([FixtureSearchTool(case)]),
-            telemetry=JsonlTelemetry(Path("eval/runs/offline.jsonl")),
+    cases = load_cases(dataset)
+    if mode == EvalMode.LIVE:
+        settings = Settings()
+        if not settings.openai_api_key or not (settings.tavily_api_key or settings.serpapi_api_key):
+            raise typer.BadParameter(
+                "live mode requires OPENAI_API_KEY and TAVILY_API_KEY or SERPAPI_API_KEY"
+            )
+        graph = build_graph(settings)
+        judge: AgentModel | None = OpenAICompatibleModel(
+            api_key=settings.openai_api_key,
+            base_url=settings.openai_base_url,
+            model=settings.openai_model,
+            timeout_seconds=settings.request_timeout_seconds,
         )
-        scores.append(score_case(case, graph.run(case.question)))
+        for case in cases:
+            scores.append(score_case(case, graph.run(case.question), judge))
+        label = "live search and LLM judge"
+    else:
+        for case in cases:
+            graph = ResearchGraph(
+                model=HeuristicModel(),
+                executor=ToolExecutor([FixtureSearchTool(case)]),
+                telemetry=JsonlTelemetry(Path("eval/runs/offline.jsonl")),
+            )
+            scores.append(score_case(case, graph.run(case.question)))
+        label = "offline deterministic fixture"
     summary = summarize(scores)
-    output.write_text(
-        render_markdown(summary, mode="offline deterministic fixture"), encoding="utf-8"
-    )
+    output.write_text(render_markdown(summary, mode=label), encoding="utf-8")
     typer.echo(summary.model_dump_json(indent=2))
 
 
