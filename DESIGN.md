@@ -19,10 +19,9 @@ flowchart LR
     C -->|sufficient| S[synthesizer]
     C -->|gaps and budget remains| R
     C -->|budget exhausted| S
-    S --> V[validate output]
-    V -->|valid| E((end))
-    V -->|retry available| S
-    V -->|retries exhausted| F[fallback output]
+    S -->|valid| E((end))
+    S -->|validation retry available| S
+    S -->|retries exhausted| F[fallback output]
     F --> E
 ```
 
@@ -33,7 +32,7 @@ Each role has one responsibility:
 - **Critic** checks coverage, citation integrity, and contradictions. It returns explicit gaps instead of rewriting the answer.
 - **Synthesizer** produces the public response only from accepted evidence and maps claims to source identifiers.
 
-Routing is deterministic Python. Models may propose plans, critiques, or answers, but they cannot choose arbitrary graph transitions or bypass budget checks.
+Routing is deterministic Python. Models may propose plans, critiques, or answers, but they cannot choose arbitrary graph transitions or bypass budget checks. Schema and citation validation remain inside the Synthesizer boundary so malformed provider output never becomes typed graph state; its retry loop is bounded and independently tested.
 
 ## Thin vertical slice
 
@@ -80,5 +79,9 @@ Raw tool output is never appended directly to model context. Python execution is
 
 ## Operational contract
 
-Each run emits duration, node timings, model and tool counts, estimated tokens, terminal status, and budget state to structured JSONL. Traces exclude API keys and truncate tool payloads. CI never calls live APIs. Production deployment should replace the local JSONL sink with centralized telemetry and the Python subprocess with an isolated execution service.
+Each run emits total duration, tool latency, model and tool counts, estimated tokens and cost, terminal status, and budget state to structured JSONL. Traces exclude API keys and truncate tool payloads. CI never calls live APIs. Production deployment should replace the local JSONL sink with centralized telemetry and the Python subprocess with an isolated execution service.
+
+## Implementation conformance note
+
+The final implementation matches the role boundaries, deterministic routing, centralized tool validation, hard budgets, citation checks, degraded output, and telemetry described above. Two details were refined during implementation: validation is a bounded loop inside the Synthesizer rather than a separate graph node, and stateful tools receive an explicit per-run reset because the compiled graph is reused by the API. Both changes narrow the trust boundary without changing the external contract.
 
