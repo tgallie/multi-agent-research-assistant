@@ -53,6 +53,16 @@ class SynthesizerNode:
                 cited_ids = {source.id for source in candidate.sources}
                 if not cited_ids.issubset(source_ids):
                     raise ValueError("synthesizer cited unknown source ids")
+                if any(source_id not in candidate.answer for source_id in cited_ids):
+                    raise ValueError("synthesizer omitted a source id from the answer")
+                canonical_sources = {
+                    source.id: source for source in state["sources"] if source.id in cited_ids
+                }
+                candidate = candidate.model_copy(
+                    update={
+                        "sources": [canonical_sources[source.id] for source in candidate.sources]
+                    }
+                )
                 output = candidate
             except (ValidationError, ValueError, RuntimeError, BudgetExceededError) as exc:
                 errors.append(str(exc))

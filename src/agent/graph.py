@@ -27,13 +27,13 @@ def route_after_critique(state: AgentState) -> str:
     """Re-search explicit gaps when possible, otherwise synthesize."""
 
     critique = state["critique"]
-    if critique and not critique.sufficient and not state["usage"].exceeded:
-        missing = {gap for gap in critique.gaps}
-        for index, task in enumerate(state["plan"]):
-            if task.id in missing and task.attempts < 2:
-                task.attempts += 1
-                state["next_task_index"] = index
-                return "researcher"
+    if (
+        critique
+        and not critique.sufficient
+        and not state["usage"].exceeded
+        and state["next_task_index"] < len(state["plan"])
+    ):
+        return "researcher"
     return "synthesizer"
 
 
@@ -79,6 +79,8 @@ class ResearchGraph:
         normalized = question.strip()
         if len(normalized) < 3:
             raise ValueError("question must contain at least three characters")
+        if len(normalized) > 2_000:
+            raise ValueError("question must contain at most 2,000 characters")
         started = time.perf_counter()
         self._executor.reset_run()
         final = self._graph.invoke(

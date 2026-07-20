@@ -74,4 +74,22 @@ def test_graph_degrades_gracefully_when_iteration_budget_is_exhausted(tmp_path: 
     assert result.status == "degraded"
     assert result.output.budget_exceeded is True
     assert result.usage.exceeded_reason == "iteration_limit"
+    assert result.usage.iterations == 1
     assert result.output.answer
+
+
+def test_graph_does_not_dispatch_tools_when_planning_exhausts_token_budget(
+    tmp_path: Path,
+) -> None:
+    graph = ResearchGraph(
+        model=HeuristicModel(),
+        executor=ToolExecutor([FakeSearch()]),
+        telemetry=JsonlTelemetry(tmp_path / "runs.jsonl"),
+        limits=BudgetLimits(max_estimated_tokens=500),
+    )
+
+    result = graph.run("Compare " + "alpha " * 250 + "and beta")
+
+    assert result.usage.exceeded_reason == "estimated_token_limit"
+    assert result.usage.tool_calls == 0
+    assert result.output.budget_exceeded is True

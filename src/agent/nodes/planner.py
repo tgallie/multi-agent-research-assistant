@@ -43,12 +43,13 @@ class PlannerNode:
             plan = PlanPayload.model_validate(payload).tasks
             fallback = False
         except (ValueError, RuntimeError, BudgetExceededError):
+            fallback_question = state["question"][:500]
             plan = [
                 PlanTask(
                     id="task_fallback",
-                    question=state["question"],
+                    question=fallback_question,
                     tool="web_search",
-                    arguments={"query": state["question"], "max_results": 5},
+                    arguments={"query": fallback_question, "max_results": 5},
                 )
             ]
             fallback = True

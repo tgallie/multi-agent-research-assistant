@@ -49,8 +49,18 @@ class CriticNode:
                 ),
             )
             fallback = True
+        next_task_index = len(state["plan"])
+        if not critique.sufficient and not state["usage"].exceeded:
+            missing = set(critique.gaps)
+            for index, task in enumerate(state["plan"]):
+                if task.id in missing and task.attempts < 2:
+                    task.attempts += 1
+                    next_task_index = index
+                    break
         return {
             "critique": critique,
+            "plan": state["plan"],
+            "next_task_index": next_task_index,
             "trace": state["trace"]
             + [
                 TraceEvent(

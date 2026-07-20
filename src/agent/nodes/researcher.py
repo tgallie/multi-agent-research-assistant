@@ -19,14 +19,19 @@ class ResearcherNode:
         """Execute one task and append only sanitized evidence."""
 
         usage = state["usage"]
-        usage.iterations += 1
-        if usage.iterations > state["limits"].max_iterations:
+        if usage.exceeded:
+            return {
+                "usage": usage,
+                "trace": state["trace"] + [TraceEvent(node="researcher", event="budget_exhausted")],
+            }
+        if usage.iterations >= state["limits"].max_iterations:
             usage.exceeded = True
             usage.exceeded_reason = "iteration_limit"
             return {
                 "usage": usage,
                 "trace": state["trace"] + [TraceEvent(node="researcher", event="budget_exhausted")],
             }
+        usage.iterations += 1
         index = state["next_task_index"]
         if index >= len(state["plan"]):
             return {"trace": state["trace"]}

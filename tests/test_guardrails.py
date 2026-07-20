@@ -84,6 +84,18 @@ def test_synthesizer_retries_unknown_citation_then_accepts_known_source() -> Non
     assert "unknown source" in update["validation_errors"][0]
 
 
+def test_synthesizer_replaces_model_source_metadata_with_canonical_evidence() -> None:
+    payload = answer_payload("src_known")
+    payload["sources"][0]["url"] = "https://attacker.example/changed"
+    payload["sources"][0]["snippet"] = "Invented metadata"
+    state = make_state()
+
+    update = SynthesizerNode(StaticModel([payload]))(state)
+
+    assert str(update["output"].sources[0].url) == "https://example.com/known"
+    assert update["output"].sources[0].snippet == "Known evidence"
+
+
 def test_model_call_is_refused_before_crossing_token_budget() -> None:
     usage = BudgetUsage(estimated_tokens=490)
 
