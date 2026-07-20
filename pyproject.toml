@@ -30,6 +30,7 @@ dev = [
 [project.scripts]
 research-agent = "agent.cli:app"
 research-eval = "agent.evaluation:app"
+research-ui = "agent.api:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/agent"]
@@ -48,4 +49,3 @@ select = ["E", "F", "I", "B", "UP", "SIM"]
 [tool.black]
 line-length = 100
 target-version = ["py311"]
-
