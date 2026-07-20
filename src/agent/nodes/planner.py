@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
+from agent.guardrails import BudgetExceededError, complete_json_with_budget
 from agent.model import AgentModel
 from agent.schemas import PlanTask, TraceEvent
 from agent.state import AgentState
@@ -28,15 +29,38 @@ class PlannerNode:
     def __call__(self, state: AgentState) -> dict[str, object]:
         """Return a validated plan and an auditable trace event."""
 
-        payload = self._model.complete_json(
-            "OPERATION=PLAN. Return JSON with 1-5 tasks. Each task has id, question, "
-            "tool (web_search, python, or scratchpad), and arguments. Never answer the question.",
-            f"QUESTION: {state['question']}",
-        )
-        plan = PlanPayload.model_validate(payload).tasks
+        try:
+            payload = complete_json_with_budget(
+                self._model,
+                system=(
+                    "OPERATION=PLAN. Return JSON with 1-5 tasks. Each task has id, question, "
+                    "tool (web_search, python, or scratchpad), and arguments. Never answer."
+                ),
+                user=f"QUESTION: {state['question']}",
+                usage=state["usage"],
+                limits=state["limits"],
+            )
+            plan = PlanPayload.model_validate(payload).tasks
+            fallback = False
+        except (ValueError, RuntimeError, BudgetExceededError):
+            plan = [
+                PlanTask(
+                    id="task_fallback",
+                    question=state["question"],
+                    tool="web_search",
+                    arguments={"query": state["question"], "max_results": 5},
+                )
+            ]
+            fallback = True
         return {
             "plan": plan,
             "next_task_index": 0,
             "trace": state["trace"]
-            + [TraceEvent(node="planner", event="plan_created", detail={"tasks": len(plan)})],
+            + [
+                TraceEvent(
+                    node="planner",
+                    event="plan_created",
+                    detail={"tasks": len(plan), "fallback": fallback},
+                )
+            ],
         }

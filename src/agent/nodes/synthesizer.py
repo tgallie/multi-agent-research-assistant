@@ -6,6 +6,7 @@ import json
 
 from pydantic import ValidationError
 
+from agent.guardrails import BudgetExceededError, complete_json_with_budget
 from agent.model import AgentModel
 from agent.schemas import ResearchAnswer, TraceEvent
 from agent.state import AgentState
@@ -32,18 +33,33 @@ class SynthesizerNode:
             }
         )
         errors = list(state["validation_errors"])
-        try:
-            payload = self._model.complete_json(
-                "OPERATION=SYNTHESIZE. Return answer, confidence, sources, reasoning_summary, "
-                "budget_exceeded. Cite only provided source IDs.",
-                prompt,
-            )
-            output = ResearchAnswer.model_validate(payload)
-            cited_ids = {source.id for source in output.sources}
-            if not cited_ids.issubset(source_ids):
-                raise ValueError("synthesizer cited unknown source ids")
-        except (ValidationError, ValueError, RuntimeError) as exc:
-            errors.append(str(exc))
+        output = None
+        while (
+            output is None and state["usage"].output_retries <= state["limits"].max_output_retries
+        ):
+            try:
+                payload = complete_json_with_budget(
+                    self._model,
+                    system=(
+                        "OPERATION=SYNTHESIZE. Return answer, confidence, sources, "
+                        "reasoning_summary, budget_exceeded. Cite only provided source IDs."
+                    ),
+                    user=prompt
+                    + (f"\nPREVIOUS_VALIDATION_ERRORS: {errors[-1:]}" if errors else ""),
+                    usage=state["usage"],
+                    limits=state["limits"],
+                )
+                candidate = ResearchAnswer.model_validate(payload)
+                cited_ids = {source.id for source in candidate.sources}
+                if not cited_ids.issubset(source_ids):
+                    raise ValueError("synthesizer cited unknown source ids")
+                output = candidate
+            except (ValidationError, ValueError, RuntimeError, BudgetExceededError) as exc:
+                errors.append(str(exc))
+                state["usage"].output_retries += 1
+                if state["usage"].exceeded:
+                    break
+        if output is None:
             output = self._fallback(state)
         return {
             "output": output,
