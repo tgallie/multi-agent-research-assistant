@@ -1,6 +1,6 @@
 # Guarded Research Agent
 
-A portfolio-grade multi-agent research assistant that plans a bounded strategy, executes validated tools, critiques evidence coverage, and returns a schema-enforced cited answer. The reference implementation emphasizes explicit control flow, degraded-mode behavior, and operational visibility over unconstrained autonomy.
+A multi-agent research assistant that plans a bounded strategy, executes validated tools, critiques evidence coverage, and returns a schema-enforced cited answer. The reference implementation emphasizes explicit control flow, degraded-mode behavior, and operational visibility over unconstrained autonomy.
 
 ## Architecture
 
