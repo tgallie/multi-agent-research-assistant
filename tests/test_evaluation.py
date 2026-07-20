@@ -58,3 +58,18 @@ def test_summarize_aggregates_failure_counts() -> None:
     assert summary.cases == 2
     assert summary.mean_keyword_score == 0.5
     assert summary.failure_counts["premature_stop"] == 2
+
+
+def test_score_case_detects_wrong_tool_choice() -> None:
+    case = EvalCase(
+        id="q-python",
+        question="Calculate a value",
+        expected_keywords=["four", "4"],
+        reference_facts="four is 4",
+        required_tools=["python"],
+        minimum_tool_calls=1,
+    )
+
+    score = score_case(case, make_result(answer="four is 4", tool_calls=1))
+
+    assert "wrong_tool_choice" in score.failures
