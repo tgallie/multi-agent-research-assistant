@@ -44,7 +44,10 @@ class ResearcherNode:
                 )
             )
             known_ids = {source.id for source in sources}
-            sources.extend(source for source in result.sources if source.id not in known_ids)
+            for source in result.sources:
+                if source.id not in known_ids:
+                    sources.append(source)
+                    known_ids.add(source.id)
         return {
             "evidence": evidence,
             "sources": sources,
