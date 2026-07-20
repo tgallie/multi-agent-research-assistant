@@ -49,6 +49,11 @@ def test_scratchpad_is_run_scoped_and_sanitized() -> None:
         ScratchpadTool().invoke(ScratchpadTool.args_schema(operation="read", key="finding")).status
         == ToolStatus.REJECTED
     )
+    executor.reset_run()
+    after_reset = executor.execute(
+        "scratchpad", {"operation": "read", "key": "finding"}, usage, limits
+    )
+    assert after_reset.status == ToolStatus.REJECTED
 
 
 def test_executor_rejects_unknown_tool_without_spending_budget() -> None:

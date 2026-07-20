@@ -108,3 +108,11 @@ class ToolExecutor:
                 "error": sanitize_text(result.error, limit=1_000) if result.error else None,
             }
         )
+
+    def reset_run(self) -> None:
+        """Reset stateful tools before a new isolated graph run."""
+
+        for tool in self._tools.values():
+            reset = getattr(tool, "reset_run", None)
+            if callable(reset):
+                reset()

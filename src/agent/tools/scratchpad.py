@@ -55,6 +55,11 @@ class ScratchpadTool:
             latency_ms=int((time.perf_counter() - started) * 1_000),
         )
 
+    def reset_run(self) -> None:
+        """Erase all findings so graph instances are safe to reuse."""
+
+        self._values.clear()
+
     def _rejected(self, error: str) -> ToolResult:
         return ToolResult(
             tool_name=self.name,

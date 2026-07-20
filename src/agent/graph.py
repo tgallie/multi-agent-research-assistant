@@ -54,6 +54,7 @@ class ResearchGraph:
         self._telemetry = telemetry
         self._limits = limits or BudgetLimits()
         self._cost_per_million_tokens = cost_per_million_tokens
+        self._executor = executor
         builder = StateGraph(AgentState)
         builder.add_node("planner", PlannerNode(model))
         builder.add_node("researcher", ResearcherNode(executor))
@@ -79,6 +80,7 @@ class ResearchGraph:
         if len(normalized) < 3:
             raise ValueError("question must contain at least three characters")
         started = time.perf_counter()
+        self._executor.reset_run()
         final = self._graph.invoke(
             AgentState(
                 question=normalized,
