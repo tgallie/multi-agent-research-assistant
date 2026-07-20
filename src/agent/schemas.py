@@ -93,6 +93,33 @@ class BudgetUsage(StrictModel):
     exceeded_reason: str | None = None
 
 
+class PlanTask(StrictModel):
+    """One bounded research task produced by the planner."""
+
+    id: str = Field(pattern=r"^task_[a-zA-Z0-9_-]+$")
+    question: str = Field(min_length=3, max_length=500)
+    tool: Literal["web_search", "python", "scratchpad"]
+    arguments: dict[str, Any]
+    attempts: int = Field(default=0, ge=0, le=5)
+
+
+class EvidenceItem(StrictModel):
+    """Sanitized evidence attached to one plan task."""
+
+    task_id: str
+    tool: str
+    content: str = Field(max_length=12_000)
+    source_ids: list[str] = Field(default_factory=list)
+
+
+class Critique(StrictModel):
+    """Evidence sufficiency decision produced by the critic."""
+
+    sufficient: bool
+    gaps: list[str] = Field(default_factory=list, max_length=10)
+    reasoning: str = Field(min_length=1, max_length=2_000)
+
+
 class RunResult(StrictModel):
     """Complete programmatic result including optional trace metadata."""
 
